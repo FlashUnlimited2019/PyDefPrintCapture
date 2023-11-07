@@ -1,0 +1,47 @@
+import sys
+import time
+from threading import Thread
+from io import StringIO
+from contextlib import contextmanager
+
+
+# 原始函数
+def function_with_print():
+    for i in range(5):
+        print(f"Progress: {i+1}/5")
+        time.sleep(1)
+
+# 一个线程安全的context manager用于捕获输出
+@contextmanager
+def capture_output(stream):
+    old_stdout = sys.stdout
+    sys.stdout = stream
+    try:
+        yield stream
+    finally:
+        sys.stdout = old_stdout
+
+# 一个函数，它在一个新的线程中执行function_with_print并实时捕获输出
+def threaded_function_with_capture():
+    stream = StringIO()
+    with capture_output(stream):
+        thread = Thread(target=function_with_print)
+        thread.start()
+        while thread.is_alive():
+            time.sleep(0.1)  # 短暂休眠以免频繁锁定
+            stream.seek(0)  # 前往当前流的开头
+            output = stream.read()
+            if output:  # 如果有新输出则打印
+                sys.__stdout__.write("message: " + output)
+                sys.__stdout__.flush()
+                stream.truncate(0)  # 清空流以便再次捕获
+                stream.seek(0)
+        thread.join()
+        # 打印剩余的输出
+        output = stream.getvalue()
+        if output:
+            sys.__stdout__.write(output)
+            sys.__stdout__.flush()
+
+# 运行我们的线程捕获函数
+threaded_function_with_capture()
