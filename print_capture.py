@@ -10,18 +10,22 @@ def function_with_print():
     for i in range(5):
         print(f"Progress: {i+1}/5")
         time.sleep(1)
+    assert False
 
-# 一个线程安全的context manager用于捕获输出
+# 线程安全的context manager用于捕获stdout和stderr
 @contextmanager
 def capture_output(stream):
     old_stdout = sys.stdout
+    old_stderr = sys.stderr
     sys.stdout = stream
+    sys.stderr = stream
     try:
         yield stream
     finally:
         sys.stdout = old_stdout
+        sys.stderr = old_stderr
 
-# 一个函数，它在一个新的线程中执行function_with_print并实时捕获输出
+# 在一个新的线程中执行function_with_print并实时捕获输出
 def threaded_function_with_capture():
     stream = StringIO()
     with capture_output(stream):
@@ -43,5 +47,5 @@ def threaded_function_with_capture():
             sys.__stdout__.write(output)
             sys.__stdout__.flush()
 
-# 运行我们的线程捕获函数
+# 运行线程捕获函数
 threaded_function_with_capture()
